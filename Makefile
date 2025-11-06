@@ -27,6 +27,7 @@ OBJS = \
 	uart.o\
 	vectors.o\
 	vm.o\
+	ex0303_sata.o\
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -181,6 +182,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+	_ex0303_satatest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -219,7 +221,17 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 ifndef CPUS
 CPUS := 2
 endif
-QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA)
+# https://stackoverflow.com/questions/48351096/how-to-emulate-a-sata-disk-drive-in-qemu
+# Define a storage object
+# Create an AHCI controller
+# Plug the drive into the controller
+# I/O controller hub
+QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw \
+           -drive file=xv6.img,index=0,media=disk,format=raw \
+		   -drive id=disk0,if=none,file=sata0.qcow2,format=qcow2 \
+		   -device ahci,id=sata \
+           -device ide-hd,drive=disk0,bus=sata.0 \
+		   -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)

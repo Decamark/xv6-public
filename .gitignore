@@ -15,3 +15,7 @@ kernelmemfs
 mkfs
 .gdbinit
 .gdb_history
+
+core
+*.qcow2
+.vscode/
