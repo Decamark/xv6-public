@@ -228,6 +228,8 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     return 0;
   if(newsz < oldsz)
     return oldsz;
+  // if(newsz == 0)
+  //   return 0;
 
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){

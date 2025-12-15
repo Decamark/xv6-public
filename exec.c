@@ -10,9 +10,11 @@
 int
 exec(char *path, char **argv)
 {
+  dprintf("Executing %s\n", path);
+
   char *s, *last;
   int i, off;
-  uint argc, sz, sp, ustack[3+MAXARG+1];
+  uint argc, vaddr, base, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
   struct inode *ip;
   struct proghdr ph;
@@ -29,31 +31,63 @@ exec(char *path, char **argv)
   ilock(ip);
   pgdir = 0;
 
+  // #!/interp
+  char buf[10];
+  if (readi(ip, buf, 0, sizeof(buf)) != sizeof(buf))
+    goto bad;
+  dprintf("First 10 bytes: %x\n", *(uint*)buf);
+  if (buf[0] == '#' && buf[1] == '!') {
+    // Release lock
+    iunlockput(ip);
+    end_op();
+    // Tailor arguments
+    char* argv0 = kalloc();
+    argv0[0] = 's';
+    argv0[1] = 'h';
+    argv0[2] = 0;
+    char** _argv = kalloc();
+    _argv[0] = argv0;
+    _argv[1] = path;
+    _argv[2] = 0;
+    exec("sh", _argv);
+    return 0;
+  }
+
   // Check ELF header
   if(readi(ip, (char*)&elf, 0, sizeof(elf)) != sizeof(elf))
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
+  dprintf("elf.entry: 0x%x\n", elf.entry);
 
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
   // Load program into memory.
-  sz = 0;
+  base = 0; // Exercise 2.5
+  vaddr = base;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
+    dprintf("ph = {\n");
+    dprintf("  type:   0x%x\n", ph.type);
+    dprintf("  memsz:  0x%x\n", ph.memsz);
+    dprintf("  filesz: 0x%x\n", ph.filesz);
+    dprintf("  vaddr:  0x%x\n", ph.vaddr);
+    dprintf("}\n");
     if(ph.type != ELF_PROG_LOAD)
       continue;
     if(ph.memsz < ph.filesz)
       goto bad;
     if(ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
-    if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
+    dprintf("Allocated 0x%x - ", vaddr);
+    if((vaddr = allocuvm(pgdir, vaddr, base + ph.vaddr + ph.memsz)) == 0)
       goto bad;
+    dprintf("0x%x\n", base + ph.vaddr + ph.memsz);
     if(ph.vaddr % PGSIZE != 0)
       goto bad;
-    if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
+    if(loaduvm(pgdir, base + (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
   }
   iunlockput(ip);
@@ -62,11 +96,12 @@ exec(char *path, char **argv)
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  sz = PGROUNDUP(sz);
-  if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
+  vaddr = PGROUNDUP(vaddr);
+  if((vaddr = allocuvm(pgdir, vaddr, vaddr + 2*PGSIZE)) == 0)
     goto bad;
-  clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
-  sp = sz;
+  clearpteu(pgdir, (char*)(vaddr - 2*PGSIZE));
+  sp = vaddr;
+  dprintf("sp: 0x%x\n", sp);
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
@@ -96,8 +131,8 @@ exec(char *path, char **argv)
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
-  curproc->sz = sz;
-  curproc->tf->eip = elf.entry;  // main
+  curproc->sz = vaddr - base;
+  curproc->tf->eip = base + elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);
   freevm(oldpgdir);

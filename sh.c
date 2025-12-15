@@ -142,10 +142,10 @@ getcmd(char *buf, int nbuf)
 }
 
 int
-main(void)
+main(int argc, char** argv)
 {
   static char buf[100];
-  int fd;
+  int fd, fd2;
 
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
@@ -153,6 +153,27 @@ main(void)
       close(fd);
       break;
     }
+  }
+
+  // #!/interp
+  // When sh is given an argument, process it as a shell script
+  if (argc == 2) {
+    fd2 = open(argv[1], 0);
+    if (fd2 < 0) {
+      exit();
+    }
+
+    char cmd[256];
+    read(fd2, cmd, sizeof(cmd));
+    for (int i=0, p=0; i<sizeof(cmd); i++) {
+      if (cmd[i] == ';' || cmd[i] == 0) {
+        if (fork1() == 0)
+          runcmd(parsecmd(&cmd[p]));
+        wait();
+        p = i+1;
+      }
+    }
+    exit();
   }
 
   // Read and run input commands.

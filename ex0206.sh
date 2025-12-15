@@ -1,0 +1,3 @@
+#!/interp
+ls;
+ls
