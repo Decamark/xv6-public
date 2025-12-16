@@ -158,7 +158,7 @@ main(int argc, char** argv)
   // #!/interp
   // When sh is given an argument, process it as a shell script
   if (argc == 2) {
-    fd2 = open(argv[1], 0);
+    fd2 = open(argv[1], O_RDONLY);
     if (fd2 < 0) {
       exit();
     }

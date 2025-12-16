@@ -121,6 +121,10 @@ dprintf(char *fmt, ...)
   if (fmt == 0)
     panic("null fmt");
 
+  s = "\x1B[33m";
+  for(; *s; s++)
+    consputc(*s);
+
   argp = (uint*)(void*)(&fmt + 1);
   for(i = 0; (c = fmt[i] & 0xff) != 0; i++){
     if(c != '%'){
@@ -154,6 +158,10 @@ dprintf(char *fmt, ...)
       break;
     }
   }
+
+  s = "\x1B[0m";
+  for(; *s; s++)
+    consputc(*s);
 
   if(locking)
     release(&cons.lock);

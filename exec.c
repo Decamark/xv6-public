@@ -71,6 +71,7 @@ exec(char *path, char **argv)
       goto bad;
     dprintf("ph = {\n");
     dprintf("  type:   0x%x\n", ph.type);
+    dprintf("  off:    0x%x\n", ph.off);
     dprintf("  memsz:  0x%x\n", ph.memsz);
     dprintf("  filesz: 0x%x\n", ph.filesz);
     dprintf("  vaddr:  0x%x\n", ph.vaddr);
@@ -79,8 +80,8 @@ exec(char *path, char **argv)
       continue;
     if(ph.memsz < ph.filesz)
       goto bad;
-    if(ph.vaddr + ph.memsz < ph.vaddr)
-      goto bad;
+    // if(ph.vaddr + ph.memsz < ph.vaddr)
+    //   goto bad;
     dprintf("Allocated 0x%x - ", vaddr);
     if((vaddr = allocuvm(pgdir, vaddr, base + ph.vaddr + ph.memsz)) == 0)
       goto bad;
