@@ -27,7 +27,7 @@ OBJS = \
 	uart.o\
 	vectors.o\
 	vm.o\
-	ex0303_sata.o\
+	x33-sata.o\
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -183,14 +183,14 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_ex0203_sbrk1\
-	_ex0205_nullptr\
-	_ex0207_exploit\
-  _ex0207_modify\
-	_ex0303_satatest\
+	_x23-sbrk1\
+	_x25-nullptr\
+	_x27-exploit\
+  _x27-modify\
+	_x33-satatest\
 
-fs.img: mkfs README $(UPROGS) ex0206.sh
-	./mkfs fs.img README $(UPROGS) ex0206.sh
+fs.img: mkfs README $(UPROGS) x26.sh
+	./mkfs fs.img README $(UPROGS) x26.sh
 
 -include *.d
 

@@ -19,21 +19,21 @@ main(int argc, char** argv)
 {
   // Open our malicious program first
   int fd;
-  if ((fd = open("ex0207_exploit", O_RDWR)) < 0) {
-    printf(2, "ex0207_modify: cannot open ex0207_exploit\n");
+  if ((fd = open("x27-exploit", O_RDWR)) < 0) {
+    printf(2, "x27-modify: cannot open x27-exploit\n");
     exit();
   }
 
   struct stat st;
   if(fstat(fd, &st) < 0){
-    printf(2, "ex0207_modify: cannot stat ex0207_exploit\n");
+    printf(2, "x27-modify: cannot stat x27-exploit\n");
     close(fd);
     exit();
   }
 
   char* raw = (char*)malloc(st.size);
   if (read(fd, raw, st.size) != st.size) {
-    printf(2, "ex0207_modify: failed to read ex0207_exploit\n");
+    printf(2, "x27-modify: failed to read x27-exploit\n");
     exit();
   }
 

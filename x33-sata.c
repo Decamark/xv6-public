@@ -5,7 +5,7 @@
 #include "spinlock.h"
 #include "x86.h"
 #include "memlayout.h"
-#include "ex0303_sata.h"
+#include "x33-sata.h"
 
 // submit ahci command + wait for result
 // https://wiki.osdev.org/AHCI
