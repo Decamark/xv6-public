@@ -258,21 +258,22 @@ int ahci_command(HBA_PORT* port, uchar w, uchar fis_type, uchar command, uchar* 
   cfis->fis_type    = fis_type;
   cfis->c           = 1; /* command */
   cfis->command     = command;
-  cfis->device      = 1 << 6;
+  cfis->device      = 1 << 6; // LBA mode
   // IMPORTANT: This needs to be set properly
-  cfis->lba0 = 0xff;
-  cfis->lba1 = 0xff;
-  cfis->lba2 = 0xff;
-  cfis->lba3 = 0xff;
-  cfis->lba4 = 0xff;
-  cfis->lba5 = 0xff;
+  cfis->lba0 = 0;
+  cfis->lba1 = 0;
+  cfis->lba2 = 0;
+  cfis->lba3 = 0;
+  cfis->lba4 = 0;
+  cfis->lba5 = 0;
   // IMPORTANT: This needs to be set properly
   cfis->countl = 1;
+  cfis->counth = 0;
 
   // Setup PRDT
-  cmd_table->prdt_entry[0].dba  = 0x41414141;
+  cmd_table->prdt_entry[0].dba  = dba;
   cmd_table->prdt_entry[0].dbau = 0;
-  cmd_table->prdt_entry[0].dbc  = 4096 - 1; /* byte count */
+  cmd_table->prdt_entry[0].dbc  = 512 - 1; /* byte count */
   cmd_table->prdt_entry[0].i    = 1;    /* interrupt on completion */
 
   // Wait for port to be ready
@@ -293,28 +294,11 @@ int ahci_command(HBA_PORT* port, uchar w, uchar fis_type, uchar command, uchar* 
   // Issue command
   port->ci = 1;
 
-  // while (1) {
-  //   cprintf("port->ci: 0x%x\n", port->ci);
-  // }
-
   // Wait for completion
   while (1)
   {
-    // if (port->is & 1) {
-    //   cprintf("[ahci_command] is: %d\n", port->is);
-    //   char* fb = P2V(port->fb);
-    //   char status = *(fb + 0x1c + 0x04 + 0x14 + 0x0c + 2);
-    //   char error  = *(fb + 0x1c + 0x04 + 0x14 + 0x0c + 3);
-    //   cprintf("[ahci_command] status: %d, error: %d\n", status, error);
-    //   cprintf("[ahci_command] serr: %d\n", port->serr);
-    //   break;
-    // }
-    // if (port->is & (1 << 30)) {
-    //   cprintf("Error: Task file error\n");
-    //   return 0;
-    // }
     if ((port->ci & 1) == 0) {
-      cprintf("[ahci_command] is: %d\n", port->is);
+      cprintf("[ahci_command] is: 0x%x\n", port->is);
       char* fb = P2V(port->fb);
       char type = *(fb + 0x40);
       char status = *(fb + 0x40 + 2);
@@ -335,7 +319,7 @@ void satawrite(uchar* data, uint size)
   HBA_PORT* port = &bar5->ports[0]; // Use port 0
   uchar* testdata = kalloc();
   *(uint*)testdata = 0x41424344;
-  int rc = ahci_command(port, 1, FIS_TYPE_REG_H2D, 0xc8, testdata, 511);
+  int rc = ahci_command(port, 1, FIS_TYPE_REG_H2D, AHCI_ATA_CMD_WRITE_DMA_EX, V2P(testdata), 511);
   if (!rc) {
     cprintf("[satawrite] ahci_command() failed\n");
   }
