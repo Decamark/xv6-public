@@ -4,10 +4,10 @@
 int main()
 {
   char* data = malloc(10);
-  strcpy(data, "Hello");
+  strcpy(data, "Hello, man!");
   printf(0, "0x%p\n", data);
 
-  satawrite(1, data, 4);
+  satawrite(1, data, 10);
 
-  return 0;
+  exit();
 }

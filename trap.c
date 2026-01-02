@@ -64,6 +64,10 @@ trap(struct trapframe *tf)
   case T_IRQ0 + IRQ_IDE+1:
     // Bochs generates spurious IDE1 interrupts.
     break;
+  case T_IRQ0 + IRQ_AHCI:
+    cprintf("AHCI trap: %d\n", tf);
+    lapiceoi();
+    break;
   case T_IRQ0 + IRQ_KBD:
     kbdintr();
     lapiceoi();

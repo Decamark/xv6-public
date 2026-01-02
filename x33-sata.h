@@ -1,4 +1,36 @@
-
+typedef struct {
+    uchar bus;
+    uchar slot;
+    uchar func;
+    ushort device_id;             // Device ID
+    ushort vendor_id;             // Vendor ID
+    ushort status;                // Status
+    ushort command;               // Command
+    uchar class_code;             // Class code
+    uchar subclass;               // Subclass
+    uchar prog_if;                // Prog IF
+    uchar revision_id;            // Revision ID
+    uchar bist;                   // BIST
+    uchar header_type;            // Header type
+    uchar latency_timer;          // Latency Timer
+    uchar cache_line_size;        // Cache Line Size
+    uint base_address_0;          // Base address #0 (BAR0)
+    uint base_address_1;          // Base address #1 (BAR1)
+    uint base_address_2;          // Base address #2 (BAR2)
+    uint base_address_3;          // Base address #3 (BAR3)
+    uint base_address_4;          // Base address #4 (BAR4)
+    uint base_address_5;          // Base address #5 (BAR5)
+    uint cardbus_cis_pointer;     // Cardbus CIS Pointer
+    ushort subsystem_id;          // Subsystem ID
+    ushort subsystem_vendor_id;   // Subsystem Vendor ID
+    uint expansion_rom_base_address; // Expansion ROM base address
+    uchar max_latency;            // Max latency
+    uchar min_grant;              // Min Grant
+    uchar interrupt_pin;          // Interrupt PIN
+    uchar interrupt_line;         // Interrupt Line
+    uint reserved;                // Reserved
+    uint capabilities_pointer;    // Capabilities Pointer
+} pci_config_register;
 
 // https://wiki.osdev.org/PCI#Configuration_Space_Access_Mechanism_#1
 // https://github.com/coreboot/seabios/blob/master/src/hw/pcidevice.c#L168
@@ -8,15 +40,15 @@ char pci_config_readb(uint bus, uchar slot, uchar func, uchar offset) {
     uint lslot = (uint)slot;
     uint lfunc = (uint)func;
     uchar tmp = 0;
-  
+
     // Create configuration address as per Figure 1
     address = (uint)((lbus  << 16) |
                      (lslot << 11) |
-                     (lfunc << 8)  | 
-                     (offset & 0xFC) | 
+                     (lfunc << 8)  |
+                     (offset & 0xFC) |
                      ((uint)0x80000000)
                     );
-  
+
     // Write out the address
     outl(0xCF8, address);
     // Read in the data
@@ -33,12 +65,12 @@ ushort pci_config_readw(uint bus, uchar slot, uchar func, uchar offset) {
     uint lslot = (uint)slot;
     uint lfunc = (uint)func;
     ushort tmp = 0;
-  
+
     // Create configuration address as per Figure 1
     address = (uint)((lbus << 16) |
                      (lslot << 11) |
-                     (lfunc << 8) | 
-                     (offset & 0xFC) | 
+                     (lfunc << 8) |
+                     (offset & 0xFC) |
                      ((uint)0x80000000)
                     );
     // Write out the address
@@ -60,12 +92,12 @@ void pci_config_writel(uint bus, uchar slot, uchar func, uchar offset, uint val)
     uint lslot = (uint)slot;
     uint lfunc = (uint)func;
     ushort tmp = 0;
-  
+
     // Create configuration address as per Figure 1
     address = (uint)((1 << 31)       |
                      (lbus << 16)    |
                      (lslot << 11)   |
-                     (lfunc << 8)    | 
+                     (lfunc << 8)    |
                      (offset & 0xFC)
                     );
     // Write out the address
@@ -82,11 +114,11 @@ uint pci_config_readl(uint bus, uchar slot, uchar func, uchar offset) {
     uint lslot = (uint)slot;
     uint lfunc = (uint)func;
     uint tmp = 0;
-  
+
     // Create configuration address as per Figure 1
     address = (uint)((lbus << 16) | (lslot << 11) |
               (lfunc << 8) | (offset & 0xFC) | ((uint)0x80000000));
-  
+
     // Write out the address
     outl(0xCF8, address);
     // Read in the data
@@ -99,8 +131,8 @@ uint pci_config_readl(uint bus, uchar slot, uchar func, uchar offset) {
 void printBuses()
 {
   for (uint bus = 0; bus < 256; bus++) {
-    for (uint device = 0; device < 32; device++) {
-      for (uint function = 0; function < 8; function++) {
+    for (uint device = 0; device < 30; device++) {
+      for (uint function = 0; function < 256; function++) {
       if (pci_config_readw(bus, device, function, 0x00) == 0xffff) continue;
 
       cprintf("Bus: 0x%x, device: 0x%x, function: 0x%x\n", bus, device, function);
@@ -125,23 +157,23 @@ typedef struct tagHBA_CMD_HEADER
     uchar  a:1;        // ATAPI
     uchar  w:1;        // Write, 1: H2D, 0: D2H
     uchar  p:1;        // Prefetchable
- 
+
     uchar  r:1;        // Reset
     uchar  b:1;        // BIST
     uchar  c:1;        // Clear busy upon R_OK
     uchar  rsv0:1;     // Reserved
     uchar  pmp:4;      // Port multiplier port
- 
+
     ushort prdtl;      // Physical region descriptor table length in entries
- 
+
     // DW1
     volatile
     uint prdbc;      // Physical region descriptor byte count transferred
- 
+
     // DW2, 3
     uint ctba;       // Command table descriptor base address
     uint ctbau;      // Command table descriptor base address upper 32 bits
- 
+
     // DW4 - 7
     uint rsv1[4];    // Reserved
 } HBA_CMD_HEADER;
@@ -152,7 +184,7 @@ typedef struct tagHBA_PRDT_ENTRY
     uint dba;      // Data base address
     uint dbau;     // Data base address upper 32 bits
     uint rsv0;     // Reserved
- 
+
     // DW3
     uint dbc:22;   // Byte count, 4M max
     uint rsv1:9;   // Reserved
@@ -164,13 +196,13 @@ typedef struct tagHBA_CMD_TBL
 {
     // 0x00
     uchar  cfis[64];       // Command FIS
- 
+
     // 0x40
     uchar  acmd[16];       // ATAPI command, 12 or 16 bytes
- 
+
     // 0x50
     uchar  rsv[48];        // Reserved
- 
+
     // 0x80
     HBA_PRDT_ENTRY prdt_entry[1];  // Physical region descriptor table entries, 0 ~ 65535
 } HBA_CMD_TBL;
@@ -233,10 +265,10 @@ typedef volatile struct tagHBA_MEM
     uint em_ctl;    // 0x20, Enclosure management control
     uint cap2;      // 0x24, Host capabilities extended
     uint bohc;      // 0x28, BIOS/OS handoff control and status
- 
+
     // 0x2C - 0x9F, Reserved
     uchar  rsv[0xA0-0x2C];
- 
+
     // 0xA0 - 0xFF, Vendor specific registers
     uint pctrl;
     uint pcfg;
@@ -265,7 +297,7 @@ typedef volatile struct tagHBA_MEM
     // 0xf0
     uint tcr;
     uint vendor[3];
- 
+
     // 0x100 - 0x10FF, Port control registers
     HBA_PORT ports[2];   // 1 ~ 32
 } HBA_MEM;
@@ -274,7 +306,7 @@ typedef volatile struct tagHBA_MEM
 #define HBA_PORT_DET_PRESENT 3
 #define HBA_RESET            0x01            // HBA reset bit in Global Host Control register
 #define AHCI_ENABLE          0x80000000      // AHCI Enable bit in Global Host Control register
-#define AHCI_IE              0x00000002      // Interrupt Enable bit in Global Host Control register 
+#define AHCI_IE              0x00000002      // Interrupt Enable bit in Global Host Control register
 
 typedef struct {
     ushort data[256];
@@ -292,12 +324,12 @@ typedef enum
 	FIS_TYPE_DEV_BITS	= 0xA1,	// Set device bits FIS - device to host
 } FIS_TYPE;
 
-typedef enum 
+typedef enum
 {
   AHCI_ATA_CMD_IDENTIFY     = 0xEC,
-  // ATA_CMD_READ_DMA     = 0xC8,
+  ATA_CMD_READ_DMA          = 0xC8,
   AHCI_ATA_CMD_READ_DMA_EX  = 0x25,
-  // ATA_CMD_WRITE_DMA    = 0xCA,
+  ATA_CMD_WRITE_DMA         = 0xCA,
   AHCI_ATA_CMD_WRITE_DMA_EX = 0x35
 } FIS_COMMAND;
 
@@ -306,32 +338,32 @@ typedef struct tagFIS_REG_H2D
 {
 	// DWORD 0
 	uchar  fis_type;	// FIS_TYPE_REG_H2D
- 
+
 	uchar  pmport:4;	// Port multiplier
 	uchar  rsv0:3;		// Reserved
-	uchar  c:1;		// 1: Command, 0: Control
- 
-	uchar  command;	// Command register
+	uchar  c:1;		    // 1: Command, 0: Control
+
+	uchar  command;	    // Command register
 	uchar  featurel;	// Feature register, 7:0
- 
+
 	// DWORD 1
 	uchar  lba0;		// LBA low register, 7:0
 	uchar  lba1;		// LBA mid register, 15:8
 	uchar  lba2;		// LBA high register, 23:16
 	uchar  device;		// Device register
- 
+
 	// DWORD 2
 	uchar  lba3;		// LBA register, 31:24
 	uchar  lba4;		// LBA register, 39:32
 	uchar  lba5;		// LBA register, 47:40
 	uchar  featureh;	// Feature register, 15:8
- 
+
 	// DWORD 3
 	uchar  countl;		// Count register, 7:0
 	uchar  counth;		// Count register, 15:8
 	uchar  icc;		// Isochronous command completion
 	uchar  control;	// Control register
- 
+
 	// DWORD 4
 	uchar  rsv1[4];	// Reserved
 } FIS_REG_H2D;
@@ -341,32 +373,32 @@ typedef struct tagFIS_REG_D2H
 {
 	// DWORD 0
 	uchar  fis_type;    // FIS_TYPE_REG_D2H
- 
+
 	uchar  pmport:4;    // Port multiplier
 	uchar  rsv0:2;      // Reserved
 	uchar  i:1;         // Interrupt bit
 	uchar  rsv1:1;      // Reserved
- 
+
 	uchar  status;      // Status register
 	uchar  error;       // Error register
- 
+
 	// DWORD 1
 	uchar  lba0;        // LBA low register, 7:0
 	uchar  lba1;        // LBA mid register, 15:8
 	uchar  lba2;        // LBA high register, 23:16
 	uchar  device;      // Device register
- 
+
 	// DWORD 2
 	uchar  lba3;        // LBA register, 31:24
 	uchar  lba4;        // LBA register, 39:32
 	uchar  lba5;        // LBA register, 47:40
 	uchar  rsv2;        // Reserved
- 
+
 	// DWORD 3
 	uchar  countl;      // Count register, 7:0
 	uchar  counth;      // Count register, 15:8
 	uchar  rsv3[2];     // Reserved
- 
+
 	// DWORD 4
 	uchar  rsv4[4];     // Reserved
 } FIS_REG_D2H;

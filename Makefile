@@ -233,10 +233,11 @@ endif
 # I/O controller hub
 QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw \
            -drive file=xv6.img,index=0,media=disk,format=raw \
-		   -drive id=disk0,if=none,file=sata0.qcow2,format=qcow2 \
-		   -device ahci,id=sata \
-           -device ide-hd,drive=disk0,bus=sata.0 \
-		   -smp $(CPUS) -m 512 $(QEMUEXTRA)
+           -drive id=disk0,file=sata0.img,if=none,format=raw \
+					 -trace "ahci_port_write" -trace "ahci_irq_raise" \
+           -device ahci,id=ahci \
+           -device ide-hd,drive=disk0,bus=ahci.0 \
+		       -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)
